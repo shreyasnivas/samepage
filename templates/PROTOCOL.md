@@ -20,6 +20,7 @@ shares it: one board, one set of notes, one log, one memory link. A pane in
 | `roster.tsv` | Machine registry of panes. Regenerable; never edit by hand. |
 | `events.log` | Append-only log of remembers, pulses, spawns, handoffs. |
 | `backups/` | What `samepage sync` replaced, timestamped. Machine-local. |
+| `workboard/` | Ignored local runtime locks for the optional dashboard. Not a task store. |
 
 **Read, do not duplicate.** `memory/` and `skills/` are symlinks to assets
 this kit does not own. Two copies of a fact is two answers to one question,
@@ -63,6 +64,21 @@ crash or a full context window saves nothing. This is what lets the founder
 close this pane and open a different provider on the same branch, and it is
 what every other pane's digest reads. Read the current one with a bare
 `samepage wip`.
+
+## Optional Workboard
+
+`samepage workboard` serves the project's existing WIP and SHARED records on
+127.0.0.1 in the foreground. `samepage workboard report` writes a structured
+report through this same WIP path; ordinary `samepage wip` updates preserve the
+last complete report block. See the installed kit's `workboard/REPORTING.md`
+for report syntax.
+
+Browser replies are saved in SHARED for agent pickup. They are not sent to a
+running pane automatically. Use `samepage workboard request list|get --session
+ID` to inspect your session's saved requests, then `samepage workboard request
+ack --session ID --id UUID --status received|working|done|blocked` to record
+the response. Do not claim work is delivered or done merely because the reply
+was saved.
 
 ## When you learn something durable
 

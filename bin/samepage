@@ -725,6 +725,7 @@ ensure_brain_ignored() {
     "/.samepage/skills" \
     "/.samepage/artifacts" \
     "/.samepage/backups/" \
+    "/.samepage/workboard/" \
     "/.samepage/wip/" \
     "/.samepage/roster.tsv" \
     "/.samepage/events.log" \
@@ -2289,6 +2290,10 @@ Writing back
   recall <query>    Search the log, the notes and the memory estate
   handoff <to> <text>
                     Leave work for another provider
+  workboard [--port N]
+                    Serve this project's dashboard on loopback (default 3113)
+  workboard report|request ...
+                    Write a report or inspect saved requests; see workboard --help
 
 Internals (you rarely need these)
   prime             The digest alone, with no ping. Add --full for the long
@@ -2314,6 +2319,9 @@ Flags for those
 
 The brain lives at the MAIN checkout, so every worktree of this repository
 shares one board, one set of notes and one log.
+
+Workboard runs in the foreground. Browser replies are saved for an agent to
+pick up; this command does not deliver them to a running pane.
 
 sync reads the primary harness's own config (~/.claude.json) as the
 declaration. It never writes a secret anywhere: Codex gets the NAME of an
@@ -2699,6 +2707,18 @@ EOF_HITS
 # it is. A session that dies of a crash or a full context window writes nothing,
 # so this is written EARLY and updated, never saved at the end. Reading it is
 # how a fresh pane in another provider picks up a thread it never saw.
+# Return only a complete workboard fence. An interrupted report with no closing
+# fence is ordinary prose, not a block to carry forward forever.
+complete_workboard_block() {
+  awk '
+    /^```workboard[[:space:]]*$/ { inside=1; block=$0 ORS; next }
+    inside {
+      block=block $0 ORS
+      if (/^```[[:space:]]*$/) { printf "%s", block; exit }
+    }
+  '
+}
+
 cmd_wip() {
   require_brain
   mkdir -p "$(wip_dir)"
@@ -2713,6 +2733,15 @@ cmd_wip() {
     return 0
   fi
   if [ "$DRY_RUN" = 1 ]; then info "dry-run wip $body"; return; fi
+  # A normal prose refresh must not erase the last complete structured report.
+  # An explicit complete report replaces it; malformed fences do neither.
+  if [ -f "$path" ] && [ -z "$(printf '%s\n' "$body" | complete_workboard_block)" ]; then
+    local workboard_report
+    workboard_report="$(complete_workboard_block <"$path")"
+    if [ -n "$workboard_report" ]; then
+      body="${body}"$'\n\n'"${workboard_report}"
+    fi
+  fi
   {
     printf '# in flight: %s\n\n' "$(current_branch)"
     printf -- '- updated %s by %s\n' "$(human_now)" "$self"
@@ -3030,15 +3059,52 @@ cmd_install() {
     return
   fi
   mkdir -p "$dest" "$bin"
-  rm -rf "$dest/templates" "$dest/skills" "$dest/bin"
+  rm -rf "$dest/templates" "$dest/skills" "$dest/bin" "$dest/workboard"
   mkdir -p "$dest/templates" "$dest/skills" "$dest/bin"
   cp -R "$KIT_ROOT/templates/." "$dest/templates/"
   cp -R "$KIT_ROOT/skills/." "$dest/skills/"
+  cp -R "$KIT_ROOT/workboard" "$dest/workboard"
   cp "$KIT_ROOT/bin/samepage" "$dest/bin/samepage"
   chmod +x "$dest/bin/samepage"
   ln -sf "$dest/bin/samepage" "$bin/samepage"
   info "installed $bin/samepage"
   info "put $bin on PATH if it is not already"
+}
+
+cmd_workboard() {
+  case "${1:-}" in
+    report) shift; exec python3 "$KIT_ROOT/workboard/report.py" "$@" ;;
+    request) shift; exec python3 "$KIT_ROOT/workboard/request.py" "$@" ;;
+  esac
+
+  local port=3113
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --project)
+        [ "$#" -ge 2 ] && [ -n "$2" ] || die "workboard --project requires a directory"
+        PROJECT="$2"; shift 2 ;;
+      --port)
+        [ "$#" -ge 2 ] || die "workboard --port requires a number"
+        port="$2"; shift 2 ;;
+      --help|-h)
+        cat <<'EOF'
+Usage:
+  samepage workboard [--project DIR] [--port N]
+  samepage workboard report --session ID --label TEXT --items FILE|- [options]
+  samepage workboard request list|get|ack --session ID [options]
+
+The dashboard serves 127.0.0.1 in the foreground. Browser replies are saved
+for an agent to pick up; they are not sent automatically to a running pane.
+For report and request options, use the corresponding command with --help.
+EOF
+        return 0 ;;
+      *) die "unknown workboard option: $1" ;;
+    esac
+  done
+  [[ "$port" =~ ^[0-9]{1,5}$ ]] && (( 10#$port >= 1 && 10#$port <= 65535 )) \
+    || die "workboard --port must be an integer from 1 to 65535"
+  require_project
+  exec python3 "$KIT_ROOT/workboard/server.py" --project "$PROJECT" --port "$((10#$port))"
 }
 
 # ---------------------------------------------------------------------------
@@ -3058,6 +3124,14 @@ if [ "$#" -gt 0 ]; then
       shift
       ;;
   esac
+fi
+
+# Workboard report/request carry structured arguments, including prose that
+# must remain a single argv element. The older command parser joins arguments
+# into POSITIONAL, so dispatch this command before that compatibility path.
+if [ "$COMMAND" = workboard ]; then
+  cmd_workboard "$@"
+  exit $?
 fi
 
 PROVIDERS_FLAG=""

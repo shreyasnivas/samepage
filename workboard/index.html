@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>samepage Workboard</title>
+  <link rel="stylesheet" href="board.css">
+  <script src="board.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to Workboard</a>
+  <main id="main" class="shell">
+    <header class="masthead">
+      <div class="brand"><span class="mark" aria-hidden="true">●</span> samepage <span class="brand-tail">/ Workboard</span></div>
+      <p class="eyebrow">Shared project record</p>
+      <h1>Workboard</h1>
+      <p class="lede">Current work, decisions and reviews from this project’s samepage reports.</p>
+      <p id="freshness" class="freshness" role="status">Reading reports…</p>
+      <p class="delivery">Replies save in samepage. An agent must pick them up and acknowledge them.</p>
+      <p id="error" class="alert" role="alert" hidden></p>
+      <p id="warning" class="alert warning" role="status" hidden></p>
+    </header>
+
+    <section class="section" aria-labelledby="sessions-title">
+      <div class="section-head"><h2 id="sessions-title">Sessions</h2><span>Reported activity, with age</span></div>
+      <div id="sessions" class="sessions"><p class="muted">Waiting for reports…</p></div>
+    </section>
+
+    <details class="general" id="general-panel">
+      <summary>Send a general instruction</summary>
+      <form id="general-form" class="composer">
+        <label for="general-owner">Choose an existing session</label>
+        <select id="general-owner" required></select>
+        <label for="general-message">Instruction</label>
+        <textarea id="general-message" maxlength="4000" rows="3" required></textarea>
+        <div class="form-end"><button type="submit">Save instruction</button><span id="general-feedback" role="status"></span></div>
+      </form>
+    </details>
+
+    <section class="section" id="requests-section" aria-labelledby="requests-title" hidden>
+      <div class="section-head"><h2 id="requests-title">Saved instructions</h2><span id="requests-count"></span></div>
+      <div id="requests" class="requests"></div>
+    </section>
+
+    <div id="overview">
+      <nav id="filter" class="filter" aria-label="Work filter" hidden></nav>
+      <section class="section" aria-labelledby="decisions-title">
+        <div class="section-head"><h2 id="decisions-title">Decisions</h2><span id="decisions-count"></span></div>
+        <div id="decisions" class="items"></div>
+      </section>
+      <section class="section" aria-labelledby="active-title">
+        <div class="section-head"><h2 id="active-title">Active work</h2><span id="active-count"></span></div>
+        <div id="active" class="items"></div>
+      </section>
+      <details id="waiting-panel" class="section waiting">
+        <summary>Waiting and queued <span id="waiting-count"></span></summary>
+        <div id="waiting" class="items"></div>
+      </details>
+    </div>
+
+    <section id="detail" class="section detail" aria-labelledby="detail-title" hidden>
+      <a class="back" href="#overview">← Back to overview</a>
+      <div id="detail-body"></div>
+      <form id="task-form" class="composer" hidden>
+        <label for="task-message">Decision or instruction for the owner</label>
+        <textarea id="task-message" maxlength="4000" rows="4" required></textarea>
+        <div class="form-end"><button type="submit">Save for owner</button><span id="task-feedback" role="status"></span></div>
+      </form>
+    </section>
+
+    <footer>Workboard checks for new reports every 10 seconds. A stale report does not prove a session is active.</footer>
+  </main>
+</body>
+</html>

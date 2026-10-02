@@ -118,8 +118,30 @@ one board, one set of notes and one log.
 | `samepage fleet` | Spawn every other detected provider |
 | `samepage handoff claude "…"` | Leave work for a peer |
 | `samepage status` | One-screen board |
+| `samepage workboard [--port N]` | Serve the project dashboard on 127.0.0.1 in the foreground |
 
 `--dry-run` works on the sonar itself, and on init, spawn, fleet and sync.
+
+### Workboard
+
+Run `samepage workboard` from a project directory, or pass `--project DIR`.
+The default port is 3113. The dashboard reads the same main-checkout
+`.samepage/wip/` and `SHARED.md` that every worktree uses. It shows reports,
+activity, decisions and saved replies without starting another service or
+opening agent panes. Stop the foreground command to stop serving it.
+
+An agent writes a structured report with `samepage workboard report --session ID
+--label TEXT --items FILE`, or uses `--items -` to read standard input. See
+[REPORTING.md](workboard/REPORTING.md) for the report format and options. A
+later ordinary `samepage wip "…"` keeps that completed report block alongside
+the updated prose.
+
+Browser replies are **saved for pickup**, not delivered to an agent
+automatically. An agent can run `samepage workboard request list --session ID`,
+`samepage workboard request get --session ID --id UUID`, then acknowledge a
+request with `samepage workboard request ack --session ID --id UUID --status
+received|working|done|blocked --note TEXT`. The session must match the report
+owner. Run `samepage workboard --help` for the short command guide.
 
 ## Honesty
 
